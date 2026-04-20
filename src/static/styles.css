@@ -28,6 +28,22 @@ header h1 {
   margin-bottom: 10px;
 }
 
+#auth-container {
+  margin-bottom: 30px;
+}
+
+#auth-status p {
+  margin-bottom: 8px;
+}
+
+#logout-btn {
+  background-color: #455a64;
+}
+
+#logout-btn:hover {
+  background-color: #546e7a;
+}
+
 main {
   display: flex;
   flex-wrap: wrap;
@@ -162,6 +178,11 @@ button {
 
 button:hover {
   background-color: #3949ab;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
 }
 
 .message {
