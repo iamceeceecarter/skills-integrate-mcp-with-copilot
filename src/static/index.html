@@ -12,6 +12,31 @@
       <h2>Extracurricular Activities</h2>
     </header>
 
+    <section id="auth-container">
+      <h3>Teacher and Student Login</h3>
+      <form id="login-form">
+        <div class="form-group">
+          <label for="username">Username:</label>
+          <input type="text" id="username" required placeholder="student1 / advisor1 / admin1" />
+        </div>
+        <div class="form-group">
+          <label for="password">Password:</label>
+          <input type="password" id="password" required placeholder="Enter password" />
+        </div>
+        <button type="submit">Log In</button>
+      </form>
+
+      <div id="auth-status" class="hidden">
+        <p>
+          Signed in as <strong id="current-username"></strong>
+          (<span id="current-role"></span>)
+        </p>
+        <p>Account email: <span id="current-email"></span></p>
+        <button id="logout-btn" type="button">Log Out</button>
+      </div>
+      <div id="auth-message" class="hidden"></div>
+    </section>
+
     <main>
       <section id="activities-container">
         <h3>Available Activities</h3>

@@ -5,7 +5,8 @@ A super simple FastAPI application that allows students to view and sign up for 
 ## Features
 
 - View all available extracurricular activities
-- Sign up for activities
+- Login with role-based access
+- Sign up and unregister with role checks
 
 ## Getting Started
 
@@ -30,7 +31,23 @@ A super simple FastAPI application that allows students to view and sign up for 
 | Method | Endpoint                                                          | Description                                                         |
 | ------ | ----------------------------------------------------------------- | ------------------------------------------------------------------- |
 | GET    | `/activities`                                                     | Get all activities with their details and current participant count |
-| POST   | `/activities/{activity_name}/signup?email=student@mergington.edu` | Sign up for an activity                                             |
+| POST   | `/auth/login`                                                     | Login and receive a bearer token                                   |
+| POST   | `/auth/logout`                                                    | Logout and invalidate current token                                |
+| GET    | `/auth/me`                                                        | Return authenticated user info                                     |
+| POST   | `/activities/{activity_name}/signup?email=student@mergington.edu` | Sign up for an activity (requires auth)                            |
+| DELETE | `/activities/{activity_name}/unregister?email=student@mergington.edu` | Unregister from an activity (requires auth)                    |
+
+### Demo Login Credentials
+
+- `student1` / `student123` (role: `student`)
+- `advisor1` / `advisor123` (role: `advisor`)
+- `admin1` / `admin123` (role: `admin`)
+
+### Role Rules
+
+- Students can sign up/unregister only their own account email.
+- Advisors and admins can sign up/unregister any student email.
+- Unauthenticated requests to protected endpoints return `401`.
 
 ## Data Model
 

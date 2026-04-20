@@ -5,11 +5,13 @@ A super simple FastAPI application that allows students to view and sign up
 for extracurricular activities at Mergington High School.
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 import os
+import secrets
 from pathlib import Path
+from pydantic import BaseModel
 
 app = FastAPI(title="Mergington High School API",
               description="API for viewing and signing up for extracurricular activities")
@@ -77,6 +79,51 @@ activities = {
     }
 }
 
+# Simple in-memory users for demo auth.
+users = {
+    "student1": {
+        "password": "student123",
+        "role": "student",
+        "email": "emma@mergington.edu"
+    },
+    "advisor1": {
+        "password": "advisor123",
+        "role": "advisor",
+        "email": "advisor@mergington.edu"
+    },
+    "admin1": {
+        "password": "admin123",
+        "role": "admin",
+        "email": "admin@mergington.edu"
+    },
+}
+
+# token -> username
+active_sessions = {}
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+def get_current_user(authorization: str = Header(default="")):
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing or invalid auth token")
+
+    token = authorization.split(" ", 1)[1].strip()
+    username = active_sessions.get(token)
+    if not username or username not in users:
+        raise HTTPException(status_code=401, detail="Invalid or expired auth token")
+
+    user = users[username]
+    return {
+        "username": username,
+        "role": user["role"],
+        "email": user["email"],
+        "token": token,
+    }
+
 
 @app.get("/")
 def root():
@@ -88,9 +135,48 @@ def get_activities():
     return activities
 
 
+@app.post("/auth/login")
+def login(payload: LoginRequest):
+    user = users.get(payload.username)
+    if not user or payload.password != user["password"]:
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+
+    token = secrets.token_urlsafe(24)
+    active_sessions[token] = payload.username
+
+    return {
+        "message": "Login successful",
+        "token": token,
+        "username": payload.username,
+        "role": user["role"],
+        "email": user["email"],
+    }
+
+
+@app.post("/auth/logout")
+def logout(current_user=Depends(get_current_user)):
+    active_sessions.pop(current_user["token"], None)
+    return {"message": "Logged out"}
+
+
+@app.get("/auth/me")
+def get_me(current_user=Depends(get_current_user)):
+    return {
+        "username": current_user["username"],
+        "role": current_user["role"],
+        "email": current_user["email"],
+    }
+
+
 @app.post("/activities/{activity_name}/signup")
-def signup_for_activity(activity_name: str, email: str):
+def signup_for_activity(activity_name: str, email: str, current_user=Depends(get_current_user)):
     """Sign up a student for an activity"""
+    if current_user["role"] == "student" and email != current_user["email"]:
+        raise HTTPException(status_code=403, detail="Students can only sign up themselves")
+
+    if current_user["role"] not in {"student", "advisor", "admin"}:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+
     # Validate activity exists
     if activity_name not in activities:
         raise HTTPException(status_code=404, detail="Activity not found")
@@ -111,8 +197,14 @@ def signup_for_activity(activity_name: str, email: str):
 
 
 @app.delete("/activities/{activity_name}/unregister")
-def unregister_from_activity(activity_name: str, email: str):
+def unregister_from_activity(activity_name: str, email: str, current_user=Depends(get_current_user)):
     """Unregister a student from an activity"""
+    if current_user["role"] == "student" and email != current_user["email"]:
+        raise HTTPException(status_code=403, detail="Students can only unregister themselves")
+
+    if current_user["role"] not in {"student", "advisor", "admin"}:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+
     # Validate activity exists
     if activity_name not in activities:
         raise HTTPException(status_code=404, detail="Activity not found")
